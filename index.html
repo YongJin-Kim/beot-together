@@ -8,35 +8,31 @@
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Google Identity Services (Drive 업로드용) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
-      background: #f0f2f5;
-      color: #1e1e2e;
-      min-height: 100dvh;
+      background: #f0f2f5; color: #1e1e2e; min-height: 100dvh;
     }
     .app { max-width: 480px; margin: 0 auto; padding: 0 0 48px; }
 
-    /* ── Header ── */
+    /* Header */
     header {
       background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: #fff;
-      padding: 28px 20px 24px;
-      text-align: center;
-      border-radius: 0 0 24px 24px;
+      color: #fff; padding: 28px 20px 24px;
+      text-align: center; border-radius: 0 0 24px 24px;
       box-shadow: 0 4px 20px rgba(79,70,229,0.3);
     }
     header h1 { font-size: 1.4rem; font-weight: 700; }
     header p  { font-size: 0.82rem; opacity: 0.85; margin-top: 6px; }
 
-    /* ── Card ── */
+    /* Card */
     .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      margin: 16px 16px 0;
+      background: #fff; border-radius: 16px;
+      padding: 20px; margin: 16px 16px 0;
       box-shadow: 0 2px 12px rgba(0,0,0,0.07);
     }
     .card-title {
@@ -45,7 +41,7 @@
       color: #6b7280; margin-bottom: 14px;
     }
 
-    /* ── Buttons ── */
+    /* Buttons */
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 10px;
       width: 100%; padding: 16px; border: none; border-radius: 12px;
@@ -55,17 +51,14 @@
     }
     .btn:active   { transform: scale(0.97); opacity: 0.9; }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-compare { background: linear-gradient(135deg, #059669, #10b981); color:#fff; box-shadow: 0 4px 14px rgba(5,150,105,0.35); }
+    .btn-excel   { background: linear-gradient(135deg, #1d6f42, #217346); color:#fff; box-shadow: 0 4px 14px rgba(29,111,66,0.35); }
+    .btn-drive   { background: linear-gradient(135deg, #1a73e8, #4285f4); color:#fff; box-shadow: 0 4px 14px rgba(26,115,232,0.35); }
+    .btn-email   { background: linear-gradient(135deg, #dc2626, #ef4444); color:#fff; box-shadow: 0 4px 14px rgba(220,38,38,0.35); }
+    .btn-clear   { background: #f3f4f6; color: #374151; font-size: 0.85rem; padding: 11px; margin-top: 10px; }
+    .btn-cancel  { background: #f3f4f6; color: #374151; }
 
-    .btn-contacts { background: linear-gradient(135deg, #7c3aed, #a855f7); color:#fff; box-shadow: 0 4px 14px rgba(124,58,237,0.35); }
-    .btn-compare  { background: linear-gradient(135deg, #059669, #10b981); color:#fff; box-shadow: 0 4px 14px rgba(5,150,105,0.35); }
-    .btn-chrome   { background: linear-gradient(135deg, #ea580c, #f97316); color:#fff; box-shadow: 0 4px 14px rgba(234,88,12,0.35); }
-    .btn-excel    { background: linear-gradient(135deg, #1d6f42, #217346); color:#fff; box-shadow: 0 4px 14px rgba(29,111,66,0.35); }
-    .btn-email    { background: linear-gradient(135deg, #dc2626, #ef4444); color:#fff; box-shadow: 0 4px 14px rgba(220,38,38,0.35); }
-    .btn-clear    { background: #f3f4f6; color: #374151; font-size: 0.85rem; padding: 11px; margin-top: 10px; }
-    .btn-cancel   { background: #f3f4f6; color: #374151; }
-    .btn-copy     { background: linear-gradient(135deg, #0ea5e9, #38bdf8); color:#fff; box-shadow: 0 4px 14px rgba(14,165,233,0.35); }
-
-    /* ── PIN ── */
+    /* PIN */
     .pin-wrap  { text-align: center; }
     .pin-label { font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
     .pin-dots  { display: flex; justify-content: center; gap: 16px; margin-bottom: 28px; }
@@ -91,11 +84,27 @@
     .pin-key.del   { font-size: 1rem; color: #6b7280; }
     .pin-key.empty { visibility: hidden; pointer-events: none; }
 
-    /* ── 연락처 로드됨 미리보기 ── */
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed #c4b5fd; border-radius: 14px;
+      padding: 32px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #faf5ff; position: relative;
+    }
+    .upload-zone.drag-over { border-color: #4f46e5; background: #ede9fe; }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon  { font-size: 2.4rem; margin-bottom: 10px; }
+    .upload-title { font-size: 0.95rem; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+    .upload-sub   { font-size: 0.75rem; color: #7c3aed; line-height: 1.5; }
+
+    /* Loaded Preview */
     .contact-loaded {
       display: flex; align-items: center; gap: 12px;
       background: #f5f3ff; border: 1.5px solid #c4b5fd;
-      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      border-radius: 12px; padding: 14px 16px;
     }
     .cl-icon {
       width: 42px; height: 42px; border-radius: 50%;
@@ -107,46 +116,10 @@
     .cl-info span   { font-size: 0.78rem; color: #7c3aed; }
     .cl-reset {
       margin-left: auto; background: none; border: none;
-      color: #a78bfa; font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
+      color: #a78bfa; font-size: 1rem; cursor: pointer; padding: 4px;
     }
 
-    /* ── 미지원 안내 박스 ── */
-    .notice-box {
-      border-radius: 14px; padding: 20px 18px;
-      text-align: center; margin-bottom: 10px;
-    }
-    .notice-box .notice-icon { font-size: 2.4rem; margin-bottom: 10px; }
-    .notice-box .notice-title {
-      font-size: 0.95rem; font-weight: 700;
-      color: #1e1e2e; margin-bottom: 6px;
-    }
-    .notice-box .notice-desc {
-      font-size: 0.8rem; color: #6b7280;
-      line-height: 1.6; margin-bottom: 16px;
-    }
-    .notice-kakao  { background: #fff7ed; border: 1.5px solid #fed7aa; }
-    .notice-desktop{ background: #f0fdf4; border: 1.5px solid #bbf7d0; }
-
-    /* URL 복사 박스 */
-    .url-copy-box {
-      display: flex; gap: 8px;
-      background: #f9fafb; border: 1.5px solid #e5e7eb;
-      border-radius: 10px; padding: 10px 12px;
-      margin-bottom: 12px; align-items: center;
-    }
-    .url-copy-box span {
-      font-size: 0.75rem; color: #374151;
-      word-break: break-all; flex: 1;
-    }
-    .url-copy-btn {
-      background: #4f46e5; color: #fff;
-      border: none; border-radius: 7px;
-      padding: 6px 10px; font-size: 0.72rem;
-      font-weight: 600; cursor: pointer; flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* ── Results ── */
+    /* Results */
     #results-section { display: none; }
     .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .result-count  { background: #4f46e5; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
@@ -172,18 +145,28 @@
     .empty-state { text-align: center; padding: 30px 0; color: #9ca3af; font-size: 0.9rem; }
     .empty-state svg { margin: 0 auto 12px; display: block; opacity: 0.4; }
 
-    /* ── Actions ── */
-    .actions-row { display: flex; gap: 10px; }
-    .actions-row .btn { flex: 1; font-size: 0.88rem; padding: 14px 10px; }
+    /* Action Buttons - 세로 배치 */
+    .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .action-btns .btn { font-size: 0.92rem; padding: 14px; }
 
-    /* ── Toast ── */
+    /* Drive 상태 뱃지 */
+    .drive-status {
+      display: none;
+      font-size: 0.76rem; text-align: center;
+      margin-top: 6px; color: #1a73e8;
+    }
+    .drive-status.show { display: block; }
+    .drive-status a { color: #1a73e8; text-decoration: underline; }
+
+    /* Toast */
     .toast {
       position: fixed; bottom: 28px; left: 50%;
       transform: translateX(-50%) translateY(80px);
       background: #1e1e2e; color: #fff;
       padding: 12px 20px; border-radius: 12px;
-      font-size: 0.88rem; font-weight: 500; white-space: nowrap;
-      z-index: 9999; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      font-size: 0.88rem; font-weight: 500;
+      white-space: nowrap; z-index: 9999;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .toast.show    { transform: translateX(-50%) translateY(0); }
@@ -191,7 +174,7 @@
     .toast.error   { background: #991b1b; }
     .toast.info    { background: #1e40af; }
 
-    /* ── Modal ── */
+    /* Modal */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-end;
@@ -215,10 +198,12 @@
     .info-note {
       background: #eff6ff; border-left: 3px solid #3b82f6;
       border-radius: 8px; padding: 10px 14px;
-      font-size: 0.78rem; color: #1e40af; line-height: 1.5; margin-top: 10px;
+      font-size: 0.78rem; color: #1e40af; line-height: 1.6; margin-top: 10px;
     }
+    .info-note ol { padding-left: 16px; margin-top: 4px; }
+    .info-note li { margin-bottom: 2px; }
 
-    /* ── Spinner ── */
+    /* Spinner */
     .spinner {
       width: 18px; height: 18px;
       border: 2px solid rgba(255,255,255,0.4);
@@ -265,11 +250,31 @@
 
   <!-- 기능 카드 (PIN 인증 후) -->
   <div class="card" id="func-card" style="display:none">
-    <!-- 환경 감지 결과 표시 (진단용) -->
-    <div id="env-badge" style="font-size:0.72rem;color:#9ca3af;text-align:center;margin-bottom:12px;padding:6px 10px;background:#f9fafb;border-radius:8px"></div>
-    <!-- 브라우저 환경에 따라 JS가 동적으로 채움 -->
-    <div id="contacts-area"></div>
 
+    <!-- 연락처 파일 업로드 -->
+    <div class="upload-zone" id="upload-zone"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <input type="file" id="file-input"
+             accept=".vcf,text/vcard,text/x-vcard,.csv,text/csv,.txt,text/plain"
+             onchange="handleFileSelect(event)" />
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">연락처 파일 업로드</div>
+      <div class="upload-sub">VCF(vCard) 파일을 탭하거나 놓으세요<br>
+        <span style="color:#9ca3af">Android: 연락처 앱 → 더보기 → 내보내기 → .vcf 저장</span>
+      </div>
+    </div>
+
+    <!-- 업로드 완료 미리보기 -->
+    <div class="contact-loaded" id="loaded-preview" style="display:none">
+      <div class="cl-icon">📋</div>
+      <div class="cl-info">
+        <strong id="loaded-count"></strong>
+        <span id="loaded-filename"></span>
+      </div>
+      <button class="cl-reset" onclick="resetUpload()" title="다시 업로드">✕</button>
+    </div>
+
+    <!-- 비교 버튼 -->
     <button class="btn btn-compare" id="btn-compare" onclick="compareContacts()" disabled style="margin-top:14px">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -285,18 +290,31 @@
       <span class="result-count" id="result-count">0명 일치</span>
     </div>
     <div class="result-list" id="result-list"></div>
-    <div class="actions-row" style="margin-top:16px">
-      <button class="btn btn-excel" onclick="exportExcel()">
+
+    <div class="action-btns">
+      <!-- Excel 저장 -->
+      <button class="btn btn-excel" id="btn-excel" onclick="exportExcel()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
         </svg>
-        Excel 저장
+        Excel 저장 (내 폰)
       </button>
+
+      <!-- Google Drive 업로드 -->
+      <button class="btn btn-drive" id="btn-drive" onclick="uploadToDrive()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+        </svg>
+        Google Drive 저장
+      </button>
+      <div class="drive-status" id="drive-status"></div>
+
+      <!-- 이메일 발송 -->
       <button class="btn btn-email" onclick="openEmailModal()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
         </svg>
-        메일 발송
+        메일로 전송
       </button>
     </div>
     <button class="btn btn-clear" onclick="clearResults()">결과 초기화</button>
@@ -308,7 +326,7 @@
 <div class="modal-overlay" id="email-modal">
   <div class="modal">
     <h3>📧 이메일 발송 설정</h3>
-    <p>EmailJS 계정 정보를 입력하세요. 한 번 저장하면 자동으로 사용됩니다.</p>
+    <p>EmailJS 계정 정보를 입력하세요.</p>
     <div class="form-group">
       <label>EmailJS Public Key</label>
       <input type="text" id="ejs-public-key" placeholder="예: user_xxxxxxxxxxx" />
@@ -326,10 +344,7 @@
       <input type="email" id="ejs-to-email" value="yongjinin@gmail.com" />
     </div>
     <div class="info-note">
-      💡 <b>EmailJS 설정 방법:</b><br>
-      1. emailjs.com 에서 무료 계정 생성<br>
-      2. Email Service 연결 (Gmail 등)<br>
-      3. Email Template 생성 후 위 정보 입력
+      💡 emailjs.com → 무료 계정 → Gmail 연결 → Template 생성
     </div>
     <div class="modal-btns">
       <button class="btn btn-cancel" onclick="closeEmailModal()">취소</button>
@@ -338,6 +353,36 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
         </svg>
         발송하기
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Drive 설정 Modal -->
+<div class="modal-overlay" id="drive-modal">
+  <div class="modal">
+    <h3>☁️ Google Drive 연동 설정</h3>
+    <p>Google Cloud에서 발급한 OAuth 2.0 클라이언트 ID를 입력하세요.</p>
+    <div class="form-group">
+      <label>OAuth 2.0 클라이언트 ID</label>
+      <input type="text" id="gdrive-client-id" placeholder="xxxxx.apps.googleusercontent.com" />
+    </div>
+    <div class="info-note">
+      💡 <b>Google Drive 연동 설정 방법:</b>
+      <ol>
+        <li><a href="https://console.cloud.google.com" target="_blank" style="color:#1a73e8">console.cloud.google.com</a> 접속</li>
+        <li>새 프로젝트 생성 → Google Drive API 활성화</li>
+        <li>사용자 인증 정보 → OAuth 2.0 클라이언트 ID 생성<br>
+            (유형: <b>웹 애플리케이션</b>)</li>
+        <li>승인된 JavaScript 출처에 추가:<br>
+            <code style="background:#e0e7ff;padding:2px 6px;border-radius:4px;font-size:0.76rem">https://yongjin-kim.github.io</code></li>
+        <li>클라이언트 ID 복사 후 위에 입력</li>
+      </ol>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeDriveModal()">취소</button>
+      <button class="btn btn-drive" onclick="saveDriveConfig()">
+        저장 후 업로드
       </button>
     </div>
   </div>
@@ -355,26 +400,16 @@ const SAMPLE_DATA = [
   { name: '이광필', phone: '010-4875-8042' },
 ];
 
-let phoneContacts  = [];
+let phoneContacts   = [];
 let matchedContacts = [];
 
 // ────────────────────────────────────────────
 //  브라우저 환경 감지
 // ────────────────────────────────────────────
-const UA        = navigator.userAgent;
-const IS_KAKAO  = /KAKAOTALK/i.test(UA);
-const IS_ANDROID= /Android/i.test(UA);
-const IS_IOS    = /iPhone|iPad|iPod/i.test(UA);
-const IS_MOBILE = IS_ANDROID || IS_IOS;
-// 감지: 'contacts' in navigator 우선, 없어도 모바일 Chrome/Safari는 버튼 표시(시도)
-const HAS_CONTACTS_API = ('contacts' in navigator);
-const IS_CHROME  = /Chrome\/(\d+)/.test(UA);
-const CHROME_VER = IS_CHROME ? parseInt(UA.match(/Chrome\/(\d+)/)[1]) : 0;
-const ANDROID_VER = IS_ANDROID ? parseFloat((UA.match(/Android\s([\d.]+)/) || [,'0'])[1]) : 0;
-// API 미감지라도 Android Chrome 80+ 이거나 iOS Safari 14.5+면 시도 가능
-const CAN_TRY_API = HAS_CONTACTS_API
-  || (IS_ANDROID && IS_CHROME && CHROME_VER >= 80)
-  || (IS_IOS && /Safari/.test(UA) && !IS_CHROME);
+const UA         = navigator.userAgent;
+const IS_IOS     = /iPhone|iPad|iPod/i.test(UA);
+const IS_ANDROID = /Android/i.test(UA);
+const IS_KAKAO   = /KAKAOTALK/i.test(UA);
 
 // ────────────────────────────────────────────
 //  PIN
@@ -384,8 +419,7 @@ let pinBuffer = '';
 
 function pinInput(d) {
   if (pinBuffer.length >= 4) return;
-  pinBuffer += d;
-  updatePinDots();
+  pinBuffer += d; updatePinDots();
   if (pinBuffer.length === 4) setTimeout(checkPin, 120);
 }
 function pinDelete() { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); }
@@ -402,7 +436,7 @@ function checkPin() {
     document.getElementById('pin-card').style.display = 'none';
     document.getElementById('func-card').style.display = 'block';
     initEmailConfig();
-    renderContactsArea();   // ← 브라우저 환경에 맞는 UI 렌더
+    initDriveConfig();
   } else {
     updatePinDots('error');
     setTimeout(() => { pinBuffer = ''; updatePinDots(); }, 600);
@@ -411,219 +445,130 @@ function checkPin() {
 }
 
 // ────────────────────────────────────────────
-//  연락처 영역 렌더 (환경별 분기)
+//  파일 업로드 (드래그&드롭 + 탭)
 // ────────────────────────────────────────────
-function renderContactsArea() {
-  // 환경 진단 배지
-  const envParts = [];
-  if (IS_KAKAO)   envParts.push('KakaoTalk');
-  if (IS_ANDROID) envParts.push(`Android ${ANDROID_VER}`);
-  if (IS_IOS)     envParts.push('iOS');
-  if (!IS_MOBILE) envParts.push('Desktop');
-  if (IS_CHROME)  envParts.push(`Chrome ${CHROME_VER}`);
-  envParts.push(HAS_CONTACTS_API ? '✅ API감지' : CAN_TRY_API ? '⚠️ API시도가능' : '❌ 미지원');
-  document.getElementById('env-badge').textContent = '감지: ' + envParts.join(' · ');
-
-  const area = document.getElementById('contacts-area');
-
-  if (CAN_TRY_API) {
-    // ✅ 지원 또는 시도 가능 환경 (Android Chrome 80+ / iOS Safari HTTPS)
-    area.innerHTML = `
-      <button class="btn btn-contacts" id="btn-load" onclick="loadContactsAuto()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-               M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-               m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        연락처 가져오기
-      </button>`;
-
-  } else if (IS_KAKAO && IS_ANDROID) {
-    // 🟠 카카오톡 (Android) → Chrome으로 열기
-    area.innerHTML = `
-      <div class="notice-box notice-kakao">
-        <div class="notice-icon">🦊</div>
-        <div class="notice-title">카카오톡에서는 연락처 접근이 제한됩니다</div>
-        <div class="notice-desc">아래 버튼을 눌러 Chrome에서 열면<br>연락처를 바로 가져올 수 있습니다.</div>
-        <button class="btn btn-chrome" onclick="openInChrome()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
-                 M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>
-          Chrome으로 열기
-        </button>
-      </div>`;
-
-  } else if (IS_KAKAO && IS_IOS) {
-    // 🟠 카카오톡 (iOS) → URL 복사 후 Safari 안내
-    const url = location.href;
-    area.innerHTML = `
-      <div class="notice-box notice-kakao">
-        <div class="notice-icon">🦊</div>
-        <div class="notice-title">카카오톡에서는 연락처 접근이 제한됩니다</div>
-        <div class="notice-desc">아래 URL을 복사하여 Safari에서 열어주세요.</div>
-        <div class="url-copy-box">
-          <span>${url}</span>
-          <button class="url-copy-btn" onclick="copyURL()">복사</button>
-        </div>
-        <div style="font-size:0.76rem;color:#9ca3af;margin-top:4px">
-          Safari 주소창에 붙여넣기 후 접속하세요
-        </div>
-      </div>`;
-
-  } else if (!IS_MOBILE) {
-    // 💻 데스크탑 → 모바일 안내
-    const url = location.href;
-    area.innerHTML = `
-      <div class="notice-box notice-desktop">
-        <div class="notice-icon">📱</div>
-        <div class="notice-title">모바일 기기에서 접속해 주세요</div>
-        <div class="notice-desc">연락처 자동 가져오기는 스마트폰의<br>Chrome / Safari 에서만 사용 가능합니다.</div>
-        <div class="url-copy-box">
-          <span>${url}</span>
-          <button class="url-copy-btn" onclick="copyURL()">복사</button>
-        </div>
-      </div>`;
-
-  } else {
-    // 🔵 기타 모바일 브라우저 (삼성 인터넷, Firefox 등)
-    area.innerHTML = `
-      <div class="notice-box" style="background:#f0f9ff;border:1.5px solid #bae6fd">
-        <div class="notice-icon">🌐</div>
-        <div class="notice-title">Chrome 또는 Safari를 권장합니다</div>
-        <div class="notice-desc">현재 브라우저에서 연락처 접근이 지원되지 않을 수 있습니다.<br>Chrome 또는 Safari에서 아래 URL로 접속해 주세요.</div>
-        <div class="url-copy-box">
-          <span>${location.href}</span>
-          <button class="url-copy-btn" onclick="copyURL()">복사</button>
-        </div>
-      </div>`;
-  }
+function onDragOver(e)  { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function onDragLeave()  { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault(); onDragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
 }
 
-// ────────────────────────────────────────────
-//  연락처 자동 가져오기 (Web Contacts API)
-// ────────────────────────────────────────────
-async function loadContactsAuto() {
-  const btn = document.getElementById('btn-load');
-  btn.disabled = true;
-  btn.innerHTML = `<div class="spinner"></div> 불러오는 중…`;
-
-  try {
-    if (!navigator.contacts) throw new Error('NOT_SUPPORTED');
-    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const name = file.name.toLowerCase();
+    let contacts = name.endsWith('.csv') ? parseCSV(text) : parseVCF(text);
+    if (!contacts.length) contacts = parseCSV(text); // 확장자 불명 fallback
 
     if (!contacts.length) {
-      showToast('선택된 연락처가 없습니다', 'info');
-      btn.disabled = false;
-      btn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-               M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-               m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        연락처 가져오기`;
+      showToast('연락처를 찾을 수 없습니다. VCF 파일을 확인해 주세요.', 'error');
       return;
     }
-
-    phoneContacts = contacts.flatMap(c => {
-      const name = (c.name || [''])[0] || '이름없음';
-      return (c.tel || []).map(tel => ({ name, phone: tel }));
-    });
-
-    // 버튼 → 완료 미리보기로 교체
-    document.getElementById('contacts-area').innerHTML = `
-      <div class="contact-loaded">
-        <div class="cl-icon">📋</div>
-        <div class="cl-info">
-          <strong>${phoneContacts.length}개 연락처 로드됨</strong>
-          <span>스마트폰 연락처 (자동 가져오기)</span>
-        </div>
-        <button class="cl-reset" onclick="resetContacts()" title="다시 선택">✕</button>
-      </div>`;
-
+    phoneContacts = contacts;
+    showLoadedPreview(contacts.length, file.name);
     document.getElementById('btn-compare').disabled = false;
-    showToast(`✅ ${phoneContacts.length}개 연락처 로드 완료`, 'success');
+    showToast(`✅ ${contacts.length}개 연락처 로드 완료`, 'success');
+  };
+  reader.onerror = () => showToast('파일 읽기 실패', 'error');
+  // UTF-8 → 실패 시 EUC-KR 재시도
+  readWithFallback(reader, file);
+}
 
-  } catch (err) {
-    console.error(err);
-    const isNotSupported = err.message === 'NOT_SUPPORTED' || err.name === 'NotSupportedError';
-    if (isNotSupported) {
-      // API 자체 미지원 → 안내 메시지로 교체
-      document.getElementById('contacts-area').innerHTML = `
-        <div class="notice-box" style="background:#fff7ed;border:1.5px solid #fed7aa">
-          <div class="notice-icon">⚠️</div>
-          <div class="notice-title">연락처 접근이 지원되지 않습니다</div>
-          <div class="notice-desc" style="text-align:left">
-            이 기능은 <b>Android 9+</b> 기기의 <b>Chrome 80+</b>에서 지원됩니다.<br><br>
-            현재 환경: <b>${document.getElementById('env-badge').textContent.replace('감지: ','')}</b><br><br>
-            ① Chrome 최신 버전으로 업데이트<br>
-            ② Android 9 이상 기기에서 접속
-          </div>
-        </div>`;
+function readWithFallback(reader, file) {
+  const r1 = new FileReader();
+  r1.onload = (e) => {
+    // BOM 또는 한글 깨짐 감지
+    if (e.target.result.includes('???') || !e.target.result.includes(':')) {
+      const r2 = new FileReader();
+      r2.onload = (e2) => { handleTextResult(e2.target.result, file); };
+      r2.readAsText(file, 'EUC-KR');
     } else {
-      showToast('연락처 접근이 취소되었습니다', 'error');
-      btn.disabled = false;
-      btn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-               M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-               m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        연락처 가져오기`;
+      handleTextResult(e.target.result, file);
     }
-  }
+  };
+  r1.readAsText(file, 'UTF-8');
 }
 
-function resetContacts() {
+function handleTextResult(text, file) {
+  const name = file.name.toLowerCase();
+  let contacts = (name.endsWith('.csv')) ? parseCSV(text) : parseVCF(text);
+  if (!contacts.length) contacts = parseCSV(text);
+  if (!contacts.length) { showToast('연락처를 찾을 수 없습니다.', 'error'); return; }
+  phoneContacts = contacts;
+  showLoadedPreview(contacts.length, file.name);
+  document.getElementById('btn-compare').disabled = false;
+  showToast(`✅ ${contacts.length}개 연락처 로드 완료`, 'success');
+}
+
+function showLoadedPreview(count, filename) {
+  document.getElementById('upload-zone').style.display = 'none';
+  const p = document.getElementById('loaded-preview');
+  p.style.display = 'flex';
+  document.getElementById('loaded-count').textContent = `${count}개 연락처 로드됨`;
+  document.getElementById('loaded-filename').textContent = filename;
+}
+
+function resetUpload() {
   phoneContacts = [];
+  document.getElementById('upload-zone').style.display = '';
+  document.getElementById('loaded-preview').style.display = 'none';
   document.getElementById('btn-compare').disabled = true;
+  document.getElementById('file-input').value = '';
   clearResults();
-  renderContactsArea();
 }
 
 // ────────────────────────────────────────────
-//  외부 브라우저 열기
+//  VCF 파서
 // ────────────────────────────────────────────
-function openInChrome() {
-  const url = location.href;
-  // 1순위: KakaoTalk 자체 외부브라우저 오픈 scheme
-  try {
-    location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
-  } catch(e) {}
-  // 2순위: Android intent (브라우저 앱 선택 팝업 → Chrome 선택)
-  setTimeout(() => {
-    location.href = 'intent://' + url.replace(/^https?:\/\//, '')
-      + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
-  }, 500);
-}
-
-function copyURL() {
-  const url = location.href;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url)
-      .then(() => showToast('URL 복사됨! Safari에 붙여넣기 하세요', 'success'))
-      .catch(() => fallbackCopy(url));
-  } else {
-    fallbackCopy(url);
+function parseVCF(text) {
+  const contacts = [];
+  const unfolded = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]/g,'');
+  const cards = unfolded.split(/BEGIN:VCARD/i).slice(1);
+  for (const card of cards) {
+    let name = '', phone = '';
+    for (const line of card.split('\n')) {
+      const up = line.toUpperCase();
+      if (!name && up.startsWith('FN:'))  name  = line.slice(line.indexOf(':')+1).trim();
+      if (!name && up.startsWith('N:')) {
+        const parts = line.slice(line.indexOf(':')+1).trim().split(';');
+        name = [parts[1], parts[0]].filter(Boolean).join(' ').trim() || parts[0];
+      }
+      if (!phone && up.startsWith('TEL')) {
+        const ci = line.indexOf(':');
+        if (ci !== -1) phone = line.slice(ci+1).trim().replace(/\s/g,'');
+      }
+    }
+    if (phone) contacts.push({ name: name || '이름없음', phone });
   }
+  return contacts;
 }
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  document.body.removeChild(ta);
-  showToast('URL 복사됨!', 'success');
+
+// ────────────────────────────────────────────
+//  CSV 파서
+// ────────────────────────────────────────────
+function parseCSV(text) {
+  const contacts = [];
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+  if (!lines.length) return contacts;
+  const delim = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
+  const header = lines[0].split(delim).map(h=>h.trim().toLowerCase().replace(/['"]/g,''));
+  const ni = header.findIndex(h=>/^(name|이름|성명)$/.test(h));
+  const pi = header.findIndex(h=>/^(phone|tel|전화|연락처|mobile|휴대|번호|cell)/.test(h));
+  const start = (ni !== -1 || pi !== -1) ? 1 : 0;
+  for (let i = start; i < lines.length; i++) {
+    const cols = lines[i].split(delim).map(c=>c.trim().replace(/^"|"$/g,''));
+    const name  = (cols[ni !== -1 ? ni : 0] || '').trim();
+    const phone = (cols[pi !== -1 ? pi : 1] || '').trim();
+    if (phone) contacts.push({ name: name || '이름없음', phone });
+  }
+  return contacts;
 }
 
 // ────────────────────────────────────────────
@@ -640,28 +585,28 @@ function normalizePhone(p) {
 //  비교
 // ────────────────────────────────────────────
 function compareContacts() {
-  if (!phoneContacts.length) { showToast('먼저 연락처를 가져오세요', 'error'); return; }
-
+  if (!phoneContacts.length) { showToast('먼저 연락처 파일을 업로드하세요', 'error'); return; }
   const btn = document.getElementById('btn-compare');
   btn.disabled = true;
   btn.innerHTML = `<div class="spinner"></div> 비교 중…`;
 
   const phoneSet = new Map();
   phoneContacts.forEach(c => phoneSet.set(normalizePhone(c.phone), c.name));
-
   matchedContacts = SAMPLE_DATA
     .filter(s => phoneSet.has(normalizePhone(s.phone)))
     .map(s => ({ name: s.name, phone: s.phone }));
 
   renderResults(matchedContacts);
 
+  // 비교 완료 후 Drive 자동 업로드 시도 (토큰 있을 시)
+  if (gdriveToken && matchedContacts.length) {
+    setTimeout(() => doUploadToDrive(gdriveToken), 800);
+  }
+
   btn.disabled = false;
   btn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round"
-        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-           M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
     </svg>
     연락처 비교하기`;
 }
@@ -670,10 +615,8 @@ function renderResults(list) {
   const section = document.getElementById('results-section');
   const countEl = document.getElementById('result-count');
   const listEl  = document.getElementById('result-list');
-
   section.style.display = 'block';
   countEl.textContent = `${list.length}명 일치`;
-
   if (!list.length) {
     listEl.innerHTML = `
       <div class="empty-state">
@@ -686,7 +629,6 @@ function renderResults(list) {
     showToast('일치하는 연락처가 없습니다', 'info');
     return;
   }
-
   listEl.innerHTML = list.map(p => `
     <div class="result-item">
       <div class="result-avatar">${p.name.slice(0,1)}</div>
@@ -696,7 +638,6 @@ function renderResults(list) {
       </div>
       <span class="match-tag">일치 ✓</span>
     </div>`).join('');
-
   showToast(`✅ ${list.length}명 일치 발견!`, 'success');
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -704,46 +645,189 @@ function renderResults(list) {
 function clearResults() {
   document.getElementById('results-section').style.display = 'none';
   document.getElementById('result-list').innerHTML = '';
+  document.getElementById('drive-status').className = 'drive-status';
   matchedContacts = [];
 }
 
 // ────────────────────────────────────────────
-//  Excel 내보내기
+//  Excel 내보내기 (브라우저별 처리)
 // ────────────────────────────────────────────
+function makeWorkbook() {
+  const date = new Date().toLocaleDateString('ko-KR').replace(/\.\s*/g,'-').replace(/-$/,'');
+  const rows = [
+    ['이름','연락처','비교일'],
+    ...matchedContacts.map(p => [p.name, p.phone, date]),
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws, '일치 연락처');
+  return { wb, date };
+}
+
 function exportExcel() {
   if (!matchedContacts.length) { showToast('내보낼 결과가 없습니다', 'error'); return; }
   try {
-    const date = new Date().toLocaleDateString('ko-KR').replace(/\.\s*/g, '-').replace(/-$/, '');
-    const rows = [
-      ['이름', '연락처', '비교일'],
-      ...matchedContacts.map(p => [p.name, p.phone, date]),
-    ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, ws, '일치 연락처');
+    const { wb, date } = makeWorkbook();
+    const filename = `벗과함께_${date}.xlsx`;
+
+    if (IS_KAKAO) {
+      // 카카오톡: 다운로드 불가 → 안내
+      showToast('카카오톡에서는 저장이 제한됩니다. 외부 브라우저에서 열어주세요.', 'error');
+      return;
+    }
 
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob  = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url   = URL.createObjectURL(blob);
-    const a     = document.createElement('a');
-    a.href = url; a.download = `벗과함께_${date}.xlsx`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast('Excel 파일 저장 완료', 'success');
+
+    if (IS_IOS) {
+      // iOS Safari: <a download> 미지원 → 새 탭으로 열어서 "파일에 저장" 유도
+      const a = document.createElement('a');
+      a.href   = url;
+      a.target = '_blank';
+      a.rel    = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showToast('파일이 열렸습니다. "파일에 저장"을 선택하세요.', 'info');
+    } else {
+      // Android Chrome / Desktop
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('Excel 파일 저장 완료', 'success');
+    }
   } catch (e) {
     console.error(e);
-    showToast('저장 실패 - 외부 브라우저에서 시도해 주세요', 'error');
+    showToast('저장 실패', 'error');
   }
 }
 
 // ────────────────────────────────────────────
+//  Google Drive 업로드
+// ────────────────────────────────────────────
+let gdriveToken     = null;
+let gdriveClientId  = '';
+let tokenClient     = null;
+
+function initDriveConfig() {
+  gdriveClientId = localStorage.getItem('gdrive_client_id') || '';
+}
+function saveDriveConfig() {
+  const id = document.getElementById('gdrive-client-id').value.trim();
+  if (!id) { showToast('클라이언트 ID를 입력해주세요', 'error'); return; }
+  gdriveClientId = id;
+  localStorage.setItem('gdrive_client_id', id);
+  closeDriveModal();
+  requestDriveToken(doUploadToDrive);
+}
+
+function uploadToDrive() {
+  if (!matchedContacts.length) { showToast('업로드할 결과가 없습니다', 'error'); return; }
+  if (!gdriveClientId) { openDriveModal(); return; }
+  if (gdriveToken) { doUploadToDrive(gdriveToken); return; }
+  requestDriveToken(doUploadToDrive);
+}
+
+function requestDriveToken(callback) {
+  if (!gdriveClientId) { openDriveModal(); return; }
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: gdriveClientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (res) => {
+        if (res.access_token) {
+          gdriveToken = res.access_token;
+          // 토큰 만료(1시간) 시 초기화
+          setTimeout(() => { gdriveToken = null; }, 3500 * 1000);
+          callback(res.access_token);
+        } else {
+          showToast('Google 인증 실패', 'error');
+        }
+      },
+      error_callback: (err) => {
+        console.error(err);
+        showToast('Google 인증 실패: ' + (err.message || ''), 'error');
+      }
+    });
+    tokenClient.requestAccessToken({ prompt: '' });
+  } catch (e) {
+    console.error(e);
+    showToast('Google 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.', 'error');
+  }
+}
+
+async function doUploadToDrive(token) {
+  const btn = document.getElementById('btn-drive');
+  const statusEl = document.getElementById('drive-status');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> Drive 업로드 중…`;
+
+  try {
+    const { wb, date } = makeWorkbook();
+    const filename = `벗과함께_${date}.xlsx`;
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob  = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    const metadata = { name: filename, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob);
+
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Upload failed');
+    }
+
+    const result = await res.json();
+    const link = result.webViewLink || `https://drive.google.com/file/d/${result.id}/view`;
+
+    showToast('☁️ Google Drive 업로드 완료!', 'success');
+    statusEl.innerHTML = `☁️ Drive에 저장됨 → <a href="${link}" target="_blank" rel="noopener">파일 열기</a>`;
+    statusEl.classList.add('show');
+
+  } catch (e) {
+    console.error(e);
+    if (e.message && e.message.includes('401')) {
+      gdriveToken = null;
+      showToast('인증이 만료됐습니다. 다시 업로드를 눌러주세요.', 'error');
+    } else {
+      showToast('Drive 업로드 실패: ' + (e.message || ''), 'error');
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+    </svg>
+    Google Drive 저장`;
+}
+
+function openDriveModal() {
+  const saved = localStorage.getItem('gdrive_client_id') || '';
+  if (saved) document.getElementById('gdrive-client-id').value = saved;
+  document.getElementById('drive-modal').classList.add('open');
+}
+function closeDriveModal() { document.getElementById('drive-modal').classList.remove('open'); }
+
+// ────────────────────────────────────────────
 //  Email
 // ────────────────────────────────────────────
-function loadEmailConfig()  { try { return JSON.parse(localStorage.getItem('emailjs_cfg') || '{}'); } catch { return {}; } }
+function loadEmailConfig()  { try { return JSON.parse(localStorage.getItem('emailjs_cfg')||'{}'); } catch { return {}; } }
 function saveEmailConfig(c) { localStorage.setItem('emailjs_cfg', JSON.stringify(c)); }
-function initEmailConfig() {
+function initEmailConfig()  {
   const c = loadEmailConfig();
   if (c.publicKey)  document.getElementById('ejs-public-key').value  = c.publicKey;
   if (c.serviceId)  document.getElementById('ejs-service-id').value  = c.serviceId;
@@ -761,7 +845,7 @@ async function sendEmail() {
   const serviceId  = document.getElementById('ejs-service-id').value.trim();
   const templateId = document.getElementById('ejs-template-id').value.trim();
   const toEmail    = document.getElementById('ejs-to-email').value.trim();
-  if (!publicKey || !serviceId || !templateId || !toEmail) { showToast('모든 항목을 입력해주세요', 'error'); return; }
+  if (!publicKey||!serviceId||!templateId||!toEmail) { showToast('모든 항목을 입력해주세요','error'); return; }
   saveEmailConfig({ publicKey, serviceId, templateId, toEmail });
 
   const btn = document.getElementById('btn-send-email');
@@ -769,7 +853,7 @@ async function sendEmail() {
   btn.innerHTML = `<div class="spinner"></div> 전송 중…`;
 
   const date  = new Date().toLocaleString('ko-KR');
-  const table = matchedContacts.map((p, i) => `${i+1}. ${p.name}  ${p.phone}`).join('\n');
+  const table = matchedContacts.map((p,i)=>`${i+1}. ${p.name}  ${p.phone}`).join('\n');
   try {
     emailjs.init({ publicKey });
     await emailjs.send(serviceId, templateId, {
@@ -782,12 +866,11 @@ async function sendEmail() {
     closeEmailModal();
   } catch (err) {
     console.error(err);
-    showToast(`발송 실패: ${err.text || err.message || '설정을 확인하세요'}`, 'error');
+    showToast(`발송 실패: ${err.text||err.message||'설정을 확인하세요'}`, 'error');
   }
   btn.disabled = false;
   btn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
     </svg>
     발송하기`;
@@ -797,18 +880,16 @@ async function sendEmail() {
 //  Toast
 // ────────────────────────────────────────────
 let toastTimer;
-function showToast(msg, type = '') {
+function showToast(msg, type='') {
   const el = document.getElementById('toast');
   clearTimeout(toastTimer);
-  el.textContent = msg;
-  el.className = `toast ${type}`;
-  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  el.textContent = msg; el.className = `toast ${type}`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3500);
 }
 
-document.getElementById('email-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeEmailModal();
-});
+document.getElementById('email-modal').addEventListener('click', function(e) { if(e.target===this) closeEmailModal(); });
+document.getElementById('drive-modal').addEventListener('click', function(e) { if(e.target===this) closeDriveModal(); });
 </script>
 </body>
 </html>
