@@ -712,11 +712,12 @@ function exportExcel() {
 //  Google Drive 업로드
 // ────────────────────────────────────────────
 let gdriveToken     = null;
-let gdriveClientId  = '';
+let gdriveClientId  = '691720725745-skrtdg5lu4lli0l5hgocrt1s0qu2crm0.apps.googleusercontent.com';
 let tokenClient     = null;
 
 function initDriveConfig() {
-  gdriveClientId = localStorage.getItem('gdrive_client_id') || '';
+  // Client ID 기본값 고정 (localStorage 저장값 우선)
+  gdriveClientId = localStorage.getItem('gdrive_client_id') || gdriveClientId;
 }
 function saveDriveConfig() {
   const id = document.getElementById('gdrive-client-id').value.trim();
@@ -816,8 +817,7 @@ async function doUploadToDrive(token) {
 }
 
 function openDriveModal() {
-  const saved = localStorage.getItem('gdrive_client_id') || '';
-  if (saved) document.getElementById('gdrive-client-id').value = saved;
+  document.getElementById('gdrive-client-id').value = gdriveClientId;
   document.getElementById('drive-modal').classList.add('open');
 }
 function closeDriveModal() { document.getElementById('drive-modal').classList.remove('open'); }
