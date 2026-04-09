@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>벗과함께</title>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: #f0f2f5;
+      color: #1e1e2e;
+      min-height: 100dvh;
+    }
+    .app { max-width: 480px; margin: 0 auto; padding: 0 0 40px; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      padding: 28px 20px 24px;
+      text-align: center;
+      border-radius: 0 0 24px 24px;
+      box-shadow: 0 4px 20px rgba(79,70,229,0.3);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p  { font-size: 0.82rem; opacity: 0.85; margin-top: 6px; }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 16px 16px 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6b7280;
+      margin-bottom: 14px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active  { transform: scale(0.97); opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-upload   { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; box-shadow: 0 4px 14px rgba(79,70,229,0.35); }
+    .btn-contacts { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 4px 14px rgba(124,58,237,0.35); }
+    .btn-compare { background: linear-gradient(135deg, #059669, #10b981); color: #fff; box-shadow: 0 4px 14px rgba(5,150,105,0.35); margin-top: 10px; }
+    .btn-excel   { background: linear-gradient(135deg, #1d6f42, #217346); color: #fff; box-shadow: 0 4px 14px rgba(29,111,66,0.35); }
+    .btn-email   { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,0.35); }
+    .btn-clear   { background: #f3f4f6; color: #374151; font-size: 0.85rem; padding: 11px; margin-top: 10px; }
+    .btn-cancel  { background: #f3f4f6; color: #374151; }
+
+    /* PIN */
+    .pin-wrap  { text-align: center; }
+    .pin-label { font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
+    .pin-dots  { display: flex; justify-content: center; gap: 16px; margin-bottom: 28px; }
+    .pin-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      background: transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .pin-dot.filled { background: #4f46e5; border-color: #4f46e5; }
+    .pin-dot.error  { background: #ef4444; border-color: #ef4444; }
+    .pin-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+    .pin-key {
+      background: #f9fafb;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #1e1e2e;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .pin-key:active { background: #e0e7ff; transform: scale(0.95); }
+    .pin-key.del    { font-size: 1rem; color: #6b7280; }
+    .pin-key.empty  { visibility: hidden; pointer-events: none; }
+
+    /* Upload Drop Zone */
+    .upload-zone {
+      border: 2px dashed #c4b5fd;
+      border-radius: 14px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #faf5ff;
+      position: relative;
+    }
+    .upload-zone.drag-over { border-color: #4f46e5; background: #ede9fe; }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 8px; }
+    .upload-title { font-size: 0.95rem; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+    .upload-sub   { font-size: 0.75rem; color: #7c3aed; }
+
+    /* Uploaded contacts preview */
+    .uploaded-preview {
+      display: none;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 12px;
+    }
+    .uploaded-preview.show { display: flex; align-items: center; gap: 12px; }
+    .preview-icon {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      font-size: 1.2rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .preview-info strong { font-size: 0.92rem; color: #1e40af; display: block; }
+    .preview-info span   { font-size: 0.78rem; color: #3b82f6; }
+    .preview-reset {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Guide steps */
+    .guide-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 11px 14px;
+      margin-top: 12px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #374151;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .guide-toggle svg { transition: transform 0.2s; }
+    .guide-toggle.open svg { transform: rotate(180deg); }
+    .guide-body {
+      display: none;
+      padding: 12px 2px 0;
+    }
+    .guide-body.open { display: block; }
+    .guide-tab-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .guide-tab {
+      flex: 1;
+      padding: 7px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      color: #6b7280;
+      background: #f9fafb;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .guide-tab.active { border-color: #4f46e5; color: #4f46e5; background: #ede9fe; }
+    .guide-steps { display: none; }
+    .guide-steps.active { display: block; }
+    .guide-step {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .step-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Status */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-top: 12px;
+    }
+    .badge-blue { background: #eff6ff; color: #2563eb; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-blue { background: #3b82f6; }
+    .dot-gray { background: #9ca3af; }
+
+    /* Results */
+    #results-section { display: none; }
+    .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .result-count { background: #4f46e5; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+    .result-list  { display: flex; flex-direction: column; gap: 8px; }
+    .result-item  {
+      display: flex; align-items: center; gap: 12px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .result-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff; font-size: 0.85rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .result-name  { font-weight: 700; font-size: 0.95rem; color: #065f46; }
+    .result-phone { font-size: 0.8rem; color: #047857; margin-top: 2px; }
+    .match-tag {
+      margin-left: auto;
+      background: #dcfce7; color: #15803d;
+      font-size: 0.72rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 999px; flex-shrink: 0;
+    }
+    .empty-state { text-align: center; padding: 30px 0; color: #9ca3af; font-size: 0.9rem; }
+    .empty-state svg { margin: 0 auto 12px; display: block; opacity: 0.4; }
+
+    /* Actions */
+    .actions-row { display: flex; gap: 10px; }
+    .actions-row .btn { flex: 1; font-size: 0.88rem; padding: 14px 10px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1e1e2e; color: #fff;
+      padding: 12px 20px; border-radius: 12px;
+      font-size: 0.88rem; font-weight: 500; white-space: nowrap;
+      z-index: 9999; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .toast.show    { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #065f46; }
+    .toast.error   { background: #991b1b; }
+    .toast.info    { background: #1e40af; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 20px 20px 0 0;
+      padding: 24px 20px 40px; width: 100%; max-width: 480px; margin: 0 auto;
+    }
+    .modal h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .modal p  { font-size: 0.82rem; color: #6b7280; margin-bottom: 16px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
+    .form-group input {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      padding: 11px 14px; font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+    }
+    .form-group input:focus { border-color: #4f46e5; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-btns .btn { flex: 1; font-size: 0.9rem; padding: 14px; }
+    .info-note {
+      background: #eff6ff; border-left: 3px solid #3b82f6;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.78rem; color: #1e40af; line-height: 1.5; margin-top: 10px;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🤝 벗과함께</h1>
+    <p>우리 함께</p>
+  </header>
+
+  <!-- PIN 카드 -->
+  <div class="card" id="pin-card">
+    <div class="pin-wrap">
+      <div class="pin-label">코드를 입력하세요</div>
+      <div class="pin-dots">
+        <span class="pin-dot" id="pd0"></span>
+        <span class="pin-dot" id="pd1"></span>
+        <span class="pin-dot" id="pd2"></span>
+        <span class="pin-dot" id="pd3"></span>
+      </div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinInput('1')">1</button>
+        <button class="pin-key" onclick="pinInput('2')">2</button>
+        <button class="pin-key" onclick="pinInput('3')">3</button>
+        <button class="pin-key" onclick="pinInput('4')">4</button>
+        <button class="pin-key" onclick="pinInput('5')">5</button>
+        <button class="pin-key" onclick="pinInput('6')">6</button>
+        <button class="pin-key" onclick="pinInput('7')">7</button>
+        <button class="pin-key" onclick="pinInput('8')">8</button>
+        <button class="pin-key" onclick="pinInput('9')">9</button>
+        <button class="pin-key empty"></button>
+        <button class="pin-key" onclick="pinInput('0')">0</button>
+        <button class="pin-key del" onclick="pinDelete()">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기능 카드 (PIN 인증 후) -->
+  <div class="card" id="func-card" style="display:none">
+
+    <!-- 자동 가져오기 버튼 (Web Contacts API 지원 브라우저만 노출) -->
+    <div id="auto-contacts-wrap" style="display:none; margin-bottom:10px">
+      <button class="btn btn-contacts" id="btn-auto" onclick="loadContactsAuto()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        연락처 자동으로 가져오기
+      </button>
+      <div style="text-align:center; margin:10px 0 4px; font-size:0.75rem; color:#9ca3af; font-weight:500">또는</div>
+    </div>
+
+    <!-- 연락처 파일 업로드 영역 -->
+    <div class="upload-zone" id="upload-zone"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <input type="file" id="file-input"
+             accept=".vcf,.csv,.txt,text/vcard,text/x-vcard,text/csv,text/plain,*/*"
+             onchange="handleFileSelect(event)" />
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">연락처 파일 업로드</div>
+      <div class="upload-sub">VCF(vCard) · CSV · TXT 지원<br>탭하거나 파일을 여기에 놓으세요</div>
+    </div>
+
+    <!-- 업로드 완료 미리보기 -->
+    <div class="uploaded-preview" id="uploaded-preview">
+      <div class="preview-icon">📋</div>
+      <div class="preview-info">
+        <strong id="preview-count"></strong>
+        <span id="preview-filename"></span>
+      </div>
+      <button class="preview-reset" onclick="resetUpload()" title="다시 업로드">✕</button>
+    </div>
+
+    <!-- 내보내기 가이드 -->
+    <div class="guide-toggle" id="guide-toggle" onclick="toggleGuide()">
+      <span>📱 스마트폰 연락처 내보내기 방법</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </div>
+    <div class="guide-body" id="guide-body">
+      <div class="guide-tab-row">
+        <div class="guide-tab active" id="tab-android" onclick="switchTab('android')">Android</div>
+        <div class="guide-tab" id="tab-iphone" onclick="switchTab('iphone')">iPhone</div>
+      </div>
+
+      <div class="guide-steps active" id="steps-android">
+        <div class="guide-step"><div class="step-num">1</div><div>스마트폰 <b>연락처</b> 앱 실행</div></div>
+        <div class="guide-step"><div class="step-num">2</div><div>우측 상단 <b>더보기(⋮)</b> → <b>연락처 관리</b></div></div>
+        <div class="guide-step"><div class="step-num">3</div><div><b>가져오기/내보내기</b> → <b>내보내기</b> 선택</div></div>
+        <div class="guide-step"><div class="step-num">4</div><div>저장 위치 선택 후 <b>.vcf 파일 저장</b></div></div>
+        <div class="guide-step"><div class="step-num">5</div><div>저장된 <b>.vcf 파일</b>을 위 영역에 업로드</div></div>
+      </div>
+
+      <div class="guide-steps" id="steps-iphone">
+        <div class="guide-step"><div class="step-num">1</div><div>App Store에서 <b>"내보내기 연락처"</b> 앱 설치<br><span style="color:#9ca3af;font-size:0.75rem">예: Contacts+ 또는 vCard Export</span></div></div>
+        <div class="guide-step"><div class="step-num">2</div><div>앱 실행 → <b>전체 연락처 내보내기</b> 선택</div></div>
+        <div class="guide-step"><div class="step-num">3</div><div><b>.vcf 파일</b>을 파일 앱에 저장</div></div>
+        <div class="guide-step"><div class="step-num">4</div><div>저장된 <b>.vcf 파일</b>을 위 영역에 업로드</div></div>
+      </div>
+    </div>
+
+    <!-- 비교 버튼 -->
+    <button class="btn btn-compare" id="btn-compare" onclick="compareContacts()" disabled style="margin-top:14px">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+      </svg>
+      연락처 비교하기
+    </button>
+
+  </div>
+
+  <!-- 결과 -->
+  <div class="card" id="results-section">
+    <div class="result-header">
+      <div class="card-title" style="margin:0">비교 결과</div>
+      <span class="result-count" id="result-count">0명 일치</span>
+    </div>
+    <div class="result-list" id="result-list"></div>
+
+    <div class="actions-row" style="margin-top:16px">
+      <button class="btn btn-excel" onclick="exportExcel()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Excel 저장
+      </button>
+      <button class="btn btn-email" onclick="openEmailModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        메일 발송
+      </button>
+    </div>
+    <button class="btn btn-clear" onclick="clearResults()">결과 초기화</button>
+  </div>
+
+</div>
+
+<!-- EmailJS Modal -->
+<div class="modal-overlay" id="email-modal">
+  <div class="modal">
+    <h3>📧 이메일 발송 설정</h3>
+    <p>EmailJS 계정 정보를 입력하세요. 한 번 저장하면 자동으로 사용됩니다.</p>
+    <div class="form-group">
+      <label>EmailJS Public Key</label>
+      <input type="text" id="ejs-public-key" placeholder="예: user_xxxxxxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>Service ID</label>
+      <input type="text" id="ejs-service-id" placeholder="예: service_xxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>Template ID</label>
+      <input type="text" id="ejs-template-id" placeholder="예: template_xxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>수신 이메일</label>
+      <input type="email" id="ejs-to-email" value="yongjinin@gmail.com" />
+    </div>
+    <div class="info-note">
+      💡 <b>EmailJS 설정 방법:</b><br>
+      1. emailjs.com 에서 무료 계정 생성<br>
+      2. Email Service 연결 (Gmail 등)<br>
+      3. Email Template 생성<br>
+      4. 위 정보를 입력하고 저장
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeEmailModal()">취소</button>
+      <button class="btn btn-email" id="btn-send-email" onclick="sendEmail()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+        발송하기
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  기존 비교 대상 데이터
+// ─────────────────────────────────────────────
+const SAMPLE_DATA = [
+  { name: '김용진', phone: '010-7446-1120' },
+  { name: '송진우', phone: '010-8951-2208' },
+  { name: '이광필', phone: '010-4875-8042' },
+];
+
+let phoneContacts  = [];  // 업로드된 연락처
+let matchedContacts = [];
+
+// ─────────────────────────────────────────────
+//  PIN
+// ─────────────────────────────────────────────
+const CORRECT_PIN = '1234';
+let pinBuffer = '';
+
+function pinInput(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 120);
+}
+function pinDelete() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+function updatePinDots(state) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.className = 'pin-dot';
+    if (state === 'error') dot.classList.add('error');
+    else if (i < pinBuffer.length) dot.classList.add('filled');
+  }
+}
+function checkPin() {
+  if (pinBuffer === CORRECT_PIN) {
+    document.getElementById('pin-card').style.display = 'none';
+    document.getElementById('func-card').style.display = 'block';
+    initEmailConfig();
+    // Web Contacts API 지원 시 자동 가져오기 버튼 노출
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      document.getElementById('auto-contacts-wrap').style.display = 'block';
+    }
+  } else {
+    updatePinDots('error');
+    setTimeout(() => { pinBuffer = ''; updatePinDots(); }, 600);
+    showToast('코드가 올바르지 않습니다', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+//  가이드 토글
+// ─────────────────────────────────────────────
+function toggleGuide() {
+  const toggle = document.getElementById('guide-toggle');
+  const body   = document.getElementById('guide-body');
+  toggle.classList.toggle('open');
+  body.classList.toggle('open');
+}
+function switchTab(os) {
+  ['android','iphone'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === os);
+    document.getElementById('steps-' + t).classList.toggle('active', t === os);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  드래그&드롭
+// ─────────────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+function onDragLeave(e) {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+// ─────────────────────────────────────────────
+//  파일 처리 (VCF / CSV / TXT)
+// ─────────────────────────────────────────────
+function processFile(file) {
+  const name = file.name.toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+    const text = e.target.result;
+    let contacts = [];
+
+    if (name.endsWith('.vcf') || name.endsWith('.txt')) {
+      contacts = parseVCF(text);
+    } else if (name.endsWith('.csv')) {
+      contacts = parseCSV(text);
+    } else {
+      // 확장자 불명확 시 VCF 먼저, 안되면 CSV 시도
+      contacts = parseVCF(text);
+      if (!contacts.length) contacts = parseCSV(text);
+    }
+
+    if (!contacts.length) {
+      showToast('연락처를 찾을 수 없습니다. VCF 또는 CSV 파일을 확인해 주세요.', 'error');
+      return;
+    }
+
+    phoneContacts = contacts;
+    showUploadedPreview(contacts.length, file.name);
+    document.getElementById('btn-compare').disabled = false;
+    showToast(`✅ ${contacts.length}개 연락처 로드 완료`, 'success');
+  };
+
+  reader.onerror = () => showToast('파일 읽기 실패', 'error');
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────
+//  VCF(vCard) 파서
+// ─────────────────────────────────────────────
+function parseVCF(text) {
+  const contacts = [];
+  // 줄바꿈 정규화
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // folded lines 펼치기 (RFC 2425)
+  const unfolded = normalized.replace(/\n[ \t]/g, '');
+
+  const cards = unfolded.split(/BEGIN:VCARD/i).slice(1);
+
+  for (const card of cards) {
+    let name  = '';
+    let phone = '';
+
+    const lines = card.split('\n');
+    for (const line of lines) {
+      const upper = line.toUpperCase();
+
+      // 이름: FN 우선, 없으면 N
+      if (!name && upper.startsWith('FN:')) {
+        name = decodeVCFValue(line.slice(3).trim());
+      }
+      if (!name && upper.startsWith('N:')) {
+        // N:성;이름;... → "이름 성" 형태로 조합
+        const parts = decodeVCFValue(line.slice(2).trim()).split(';');
+        name = [parts[1], parts[0]].filter(Boolean).join(' ').trim() || parts[0];
+      }
+
+      // 전화번호: TEL 로 시작하는 줄
+      if (!phone && upper.startsWith('TEL')) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx !== -1) {
+          phone = line.slice(colonIdx + 1).trim().replace(/\s/g, '');
+        }
+      }
+    }
+
+    if (phone) contacts.push({ name: name || '이름없음', phone });
+  }
+
+  return contacts;
+}
+
+// VCF quoted-printable / 일반 값 디코딩
+function decodeVCFValue(raw) {
+  // quoted-printable 인코딩 감지
+  if (/ENCODING=QUOTED-PRINTABLE/i.test(raw)) {
+    // 프로퍼티 파라미터 제거 후 값만 추출
+    raw = raw.replace(/^[^:]*:/,'');
+    return qpDecode(raw);
+  }
+  // 일반 콜론이 포함된 경우 값 부분만
+  const colon = raw.indexOf(':');
+  return colon !== -1 ? raw.slice(colon + 1) : raw;
+}
+
+function qpDecode(str) {
+  try {
+    const bytes = str.replace(/=\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,
+      (_,h) => String.fromCharCode(parseInt(h,16)));
+    return decodeURIComponent(escape(bytes));
+  } catch { return str; }
+}
+
+// ─────────────────────────────────────────────
+//  CSV 파서
+// ─────────────────────────────────────────────
+function parseCSV(text) {
+  const contacts = [];
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l => l.trim());
+  if (!lines.length) return contacts;
+
+  // 구분자 자동 감지 (쉼표 vs 세미콜론 vs 탭)
+  const sample = lines[0];
+  const delim  = sample.includes('\t') ? '\t'
+               : sample.includes(';')  ? ';'
+               : ',';
+
+  const header = lines[0].split(delim).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+
+  // 이름/전화번호 열 인덱스 찾기
+  const nameIdx  = header.findIndex(h => /^(name|이름|성명|full.?name|fn)$/.test(h));
+  const phoneIdx = header.findIndex(h => /^(phone|tel|전화|연락처|mobile|휴대|번호|cell)/.test(h));
+
+  const dataStart = nameIdx !== -1 || phoneIdx !== -1 ? 1 : 0;
+
+  for (let i = dataStart; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i], delim);
+    const ni = nameIdx  !== -1 ? nameIdx  : 0;
+    const pi = phoneIdx !== -1 ? phoneIdx : 1;
+    const name  = (cols[ni]  || '').replace(/['"]/g,'').trim();
+    const phone = (cols[pi] || '').replace(/['"]/g,'').trim();
+    if (phone) contacts.push({ name: name || '이름없음', phone });
+  }
+
+  return contacts;
+}
+
+function splitCSVLine(line, delim) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (const ch of line) {
+    if (ch === '"') { inQuote = !inQuote; }
+    else if (ch === delim && !inQuote) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ─────────────────────────────────────────────
+//  업로드 UI
+// ─────────────────────────────────────────────
+function showUploadedPreview(count, filename) {
+  document.getElementById('upload-zone').style.display = 'none';
+  const preview = document.getElementById('uploaded-preview');
+  preview.classList.add('show');
+  document.getElementById('preview-count').textContent = `${count}개 연락처 로드됨`;
+  document.getElementById('preview-filename').textContent = filename;
+}
+
+function resetUpload() {
+  phoneContacts = [];
+  document.getElementById('upload-zone').style.display = '';
+  document.getElementById('uploaded-preview').classList.remove('show');
+  document.getElementById('btn-compare').disabled = true;
+  document.getElementById('file-input').value = '';
+  clearResults();
+}
+
+// ─────────────────────────────────────────────
+//  자동 연락처 가져오기 (Web Contacts API)
+// ─────────────────────────────────────────────
+async function loadContactsAuto() {
+  const btn = document.getElementById('btn-auto');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> 연락처 불러오는 중…`;
+
+  try {
+    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+    const loaded = contacts.flatMap(c => {
+      const name = (c.name || [''])[0] || '이름없음';
+      return (c.tel || []).map(tel => ({ name, phone: tel }));
+    });
+
+    if (!loaded.length) {
+      showToast('선택된 연락처가 없습니다', 'info');
+    } else {
+      phoneContacts = loaded;
+      // 파일 업로드 영역 숨기고 미리보기 표시
+      document.getElementById('upload-zone').style.display = 'none';
+      const preview = document.getElementById('uploaded-preview');
+      preview.classList.add('show');
+      document.getElementById('preview-count').textContent = `${loaded.length}개 연락처 로드됨`;
+      document.getElementById('preview-filename').textContent = '스마트폰 연락처 (자동)';
+      document.getElementById('btn-compare').disabled = false;
+      showToast(`✅ ${loaded.length}개 연락처 로드 완료`, 'success');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('연락처 접근이 취소되었습니다', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    연락처 자동으로 가져오기`;
+}
+
+// ─────────────────────────────────────────────
+//  전화번호 정규화
+// ─────────────────────────────────────────────
+function normalizePhone(phone) {
+  if (!phone) return '';
+  let n = phone.replace(/[\s\-().+]/g, '');
+  if (n.startsWith('82')) n = '0' + n.slice(2);
+  return n;
+}
+
+// ─────────────────────────────────────────────
+//  비교
+// ─────────────────────────────────────────────
+function compareContacts() {
+  if (!phoneContacts.length) { showToast('먼저 연락처 파일을 업로드하세요', 'error'); return; }
+
+  const btn = document.getElementById('btn-compare');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> 비교 중…`;
+
+  const phoneSet = new Map();
+  phoneContacts.forEach(c => phoneSet.set(normalizePhone(c.phone), c.name));
+
+  matchedContacts = SAMPLE_DATA.filter(s => phoneSet.has(normalizePhone(s.phone)))
+    .map(s => ({ name: s.name, phone: s.phone }));
+
+  renderResults(matchedContacts);
+
+  btn.disabled = false;
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    </svg>
+    연락처 비교하기`;
+}
+
+function renderResults(list) {
+  const section = document.getElementById('results-section');
+  const countEl = document.getElementById('result-count');
+  const listEl  = document.getElementById('result-list');
+
+  section.style.display = 'block';
+  countEl.textContent = `${list.length}명 일치`;
+
+  if (!list.length) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        일치하는 연락처가 없습니다
+      </div>`;
+    showToast('일치하는 연락처가 없습니다', 'info');
+    return;
+  }
+
+  listEl.innerHTML = list.map(p => `
+    <div class="result-item">
+      <div class="result-avatar">${p.name.slice(0,1)}</div>
+      <div>
+        <div class="result-name">${p.name}</div>
+        <div class="result-phone">${p.phone}</div>
+      </div>
+      <span class="match-tag">일치 ✓</span>
+    </div>`).join('');
+
+  showToast(`✅ ${list.length}명 일치 발견!`, 'success');
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearResults() {
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('result-list').innerHTML = '';
+  matchedContacts = [];
+}
+
+// ─────────────────────────────────────────────
+//  Excel 내보내기 (Blob 방식)
+// ─────────────────────────────────────────────
+function exportExcel() {
+  if (!matchedContacts.length) { showToast('내보낼 결과가 없습니다', 'error'); return; }
+  try {
+    const date = new Date().toLocaleDateString('ko-KR').replace(/\.\s*/g, '-').replace(/-$/, '');
+    const rows = [
+      ['이름', '연락처', '비교일'],
+      ...matchedContacts.map(p => [p.name, p.phone, date]),
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws, '일치 연락처');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob  = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    a.href = url;
+    a.download = `벗과함께_${date}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Excel 파일 저장 완료', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('저장 실패 - 외부 브라우저에서 시도해 주세요', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Email
+// ─────────────────────────────────────────────
+function loadEmailConfig() {
+  try { return JSON.parse(localStorage.getItem('emailjs_cfg') || '{}'); } catch { return {}; }
+}
+function saveEmailConfig(cfg) { localStorage.setItem('emailjs_cfg', JSON.stringify(cfg)); }
+function initEmailConfig() {
+  const cfg = loadEmailConfig();
+  if (cfg.publicKey)  document.getElementById('ejs-public-key').value  = cfg.publicKey;
+  if (cfg.serviceId)  document.getElementById('ejs-service-id').value  = cfg.serviceId;
+  if (cfg.templateId) document.getElementById('ejs-template-id').value = cfg.templateId;
+  if (cfg.toEmail)    document.getElementById('ejs-to-email').value    = cfg.toEmail;
+}
+
+function openEmailModal() {
+  if (!matchedContacts.length) { showToast('전송할 결과가 없습니다', 'error'); return; }
+  document.getElementById('email-modal').classList.add('open');
+}
+function closeEmailModal() { document.getElementById('email-modal').classList.remove('open'); }
+
+async function sendEmail() {
+  const publicKey  = document.getElementById('ejs-public-key').value.trim();
+  const serviceId  = document.getElementById('ejs-service-id').value.trim();
+  const templateId = document.getElementById('ejs-template-id').value.trim();
+  const toEmail    = document.getElementById('ejs-to-email').value.trim();
+  if (!publicKey || !serviceId || !templateId || !toEmail) { showToast('모든 항목을 입력해주세요', 'error'); return; }
+  saveEmailConfig({ publicKey, serviceId, templateId, toEmail });
+
+  const btn = document.getElementById('btn-send-email');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> 전송 중…`;
+
+  const date  = new Date().toLocaleString('ko-KR');
+  const table = matchedContacts.map((p, i) => `${i+1}. ${p.name}  ${p.phone}`).join('\n');
+
+  try {
+    emailjs.init({ publicKey });
+    await emailjs.send(serviceId, templateId, {
+      to_email: toEmail, to_name: '관리자',
+      subject:  `[벗과함께] ${matchedContacts.length}명 일치 - ${date}`,
+      message:  `비교 일시: ${date}\n일치 인원: ${matchedContacts.length}명\n\n--- 일치 목록 ---\n${table}`,
+      match_count: matchedContacts.length, date,
+    });
+    showToast('메일 발송 완료!', 'success');
+    closeEmailModal();
+  } catch (err) {
+    console.error(err);
+    showToast(`발송 실패: ${err.text || err.message || '설정을 확인하세요'}`, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+    </svg>
+    발송하기`;
+}
+
+// ─────────────────────────────────────────────
+//  Toast
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  clearTimeout(toastTimer);
+  el.textContent = msg;
+  el.className = `toast ${type}`;
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+document.getElementById('email-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEmailModal();
+});
+</script>
+</body>
+</html>
