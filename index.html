@@ -265,6 +265,8 @@
 
   <!-- 기능 카드 (PIN 인증 후) -->
   <div class="card" id="func-card" style="display:none">
+    <!-- 환경 감지 결과 표시 (진단용) -->
+    <div id="env-badge" style="font-size:0.72rem;color:#9ca3af;text-align:center;margin-bottom:12px;padding:6px 10px;background:#f9fafb;border-radius:8px"></div>
     <!-- 브라우저 환경에 따라 JS가 동적으로 채움 -->
     <div id="contacts-area"></div>
 
@@ -364,7 +366,8 @@ const IS_KAKAO  = /KAKAOTALK/i.test(UA);
 const IS_ANDROID= /Android/i.test(UA);
 const IS_IOS    = /iPhone|iPad|iPod/i.test(UA);
 const IS_MOBILE = IS_ANDROID || IS_IOS;
-const HAS_CONTACTS_API = ('contacts' in navigator && 'ContactsManager' in window);
+// ContactsManager 전역 노출 여부는 브라우저마다 다름 → 'contacts' in navigator 만으로 판정
+const HAS_CONTACTS_API = ('contacts' in navigator);
 
 // ────────────────────────────────────────────
 //  PIN
@@ -404,6 +407,15 @@ function checkPin() {
 //  연락처 영역 렌더 (환경별 분기)
 // ────────────────────────────────────────────
 function renderContactsArea() {
+  // 환경 진단 배지
+  const envParts = [];
+  if (IS_KAKAO)   envParts.push('KakaoTalk');
+  if (IS_ANDROID) envParts.push('Android');
+  if (IS_IOS)     envParts.push('iOS');
+  if (!IS_MOBILE) envParts.push('Desktop');
+  envParts.push(HAS_CONTACTS_API ? '✅ Contacts API 지원' : '❌ Contacts API 미지원');
+  document.getElementById('env-badge').textContent = '감지: ' + envParts.join(' · ');
+
   const area = document.getElementById('contacts-area');
 
   if (HAS_CONTACTS_API) {
@@ -556,10 +568,16 @@ function resetContacts() {
 //  외부 브라우저 열기
 // ────────────────────────────────────────────
 function openInChrome() {
-  // Android intent URL → Chrome으로 강제 오픈
   const url = location.href;
-  location.href = 'intent://' + url.replace(/^https?:\/\//, '')
-    + '#Intent;scheme=https;action=android.intent.action.VIEW;package=com.android.chrome;end';
+  // 1순위: KakaoTalk 자체 외부브라우저 오픈 scheme
+  try {
+    location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+  } catch(e) {}
+  // 2순위: Android intent (브라우저 앱 선택 팝업 → Chrome 선택)
+  setTimeout(() => {
+    location.href = 'intent://' + url.replace(/^https?:\/\//, '')
+      + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+  }, 500);
 }
 
 function copyURL() {
